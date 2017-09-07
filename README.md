@@ -7,3 +7,5 @@ Have you ever wanted to integrate a differential equation to solve Schrodinger's
 (Wat?) Don't worry about it
 
 Requires Eigen package (http://eigen.tuxfamily.org) to solve the Hamiltonian generated
+
+and ROOT(https://root.cern.ch) for plots
