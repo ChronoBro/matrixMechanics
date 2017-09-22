@@ -1,0 +1,8 @@
+#include <fstream>
+
+void readWF()
+{
+  ifstream input("wfs.txt");
+
+
+}

@@ -12,7 +12,7 @@ using namespace std;
 
 double potential(double l, double r)
 {
-  //just for testing, eventually want to implement so can insert whatever potentials I want
+  //just for testing, eventually want implementation to  insert whatever potentials I want
 
   //for now just using Wood-Saxon for 208Pb case
   double mass = 208;
@@ -20,13 +20,13 @@ double potential(double l, double r)
   double A = 0.67; //fm
   double V = 44; //MeV
 
-  //return -V/( 1 + exp( (r-R)/A ) ) +20.711666*l*(l+1)/pow(r,2.); //from notes this is the conversion factor for angular momentum barrier
+  return -V/( 1 + exp( (r-R)/A ) ) +20.711666*l*(l+1)/pow(r,2.); //from notes 20.7 this is the conversion factor for hbar^2/2m
 
   //coulomb potential below
-  double k = 14.3997; // eV*Angstrom/e^2
-  double Z = 1;
+  // double k = 14.3997; // eV*Angstrom/e^2
+  // double Z = 1;
 
-  return -k*Z/r + l*(l+1)/pow(r,2.)*3.809982;
+  // return -k*Z/r + l*(l+1)/pow(r,2.)*3.809982; //3.8 is the conversion factor for hbar^2/2m for ev/(mass of electron)
   
 }
 
@@ -41,9 +41,11 @@ int main()
 
   ofstream wf("wfs.txt");
   
-  int N=1500;
+  int N=500;
   double h = 0.05;
 
+  wf << "N = " << N << "\n";
+  
   MatrixXd H(N,N);
   
   // for(int i=0;i<N;i++)
@@ -52,7 +54,7 @@ int main()
   //   }
 
   double hbar2_2m = 20.7116666;
-  hbar2_2m = 3.809982;
+  //hbar2_2m = 3.809982;
   
   //just start with L=0 case
   int L=0;
@@ -67,6 +69,7 @@ int main()
     }
   //int check=1;
   //check increments if no eigenvalue < 0 is found. If no eigenvalue < 0 is found the loop should terminate
+  //doesn't work
   
   for(int L=0;L<1;L++)
     {
@@ -84,11 +87,7 @@ int main()
 
   H(0,1) = -hbar2_2m/pow(h,2.);
 
-  //boundary condition at end
-  H(N-1,N-1) = potential(L,N*h);
-  H(N-2,N-1) = 0.;
-
-  cout << "building Hamiltonian..." << endl;
+  cout << "building Hamiltonian for L = " << L << "..." << endl;
   for(int i=1;i<(N-1);i++)
     {
       H(i,i-1) = -hbar2_2m/pow(h,2.);
@@ -96,13 +95,18 @@ int main()
       H(i,i+1) = -hbar2_2m/pow(h,2.);
     }
 
+  //boundary condition at end
+  H(N-1,N-1) = potential(L,N*h);
+  H(N-2,N-1) = 0.;
+
+  
   cout << "finding eigen-values(vectors)..." << endl;
   
   EigenSolver<MatrixXd> Hamiltonian(H);
   MatrixXcd wavefunctions = Hamiltonian.eigenvectors();
   
  
-  cout << "The bound states energies of H are:" << endl;
+  cout << "The bound state energies of H for L = " << L << " are:" << endl;
   for(int i=0;i<N;i++)
     {
       x[i] = (i+1)*h;
@@ -110,8 +114,8 @@ int main()
       if(real(Hamiltonian.eigenvalues()[i]) < 0.) //I guess eigenvalues are type complex<double>
 	{
 	  //check=1.;
-	  wf << "Quantum #s: " << "E = " << real(Hamiltonian.eigenvalues()[i]) << ", L = " << L << "\n";
-	  wf << "r \t psi(r)\n";
+	  wf << "Quantum #s: " << "E = " << real(Hamiltonian.eigenvalues()[i]) << " L = " << L << "\n";
+	  wf << "r \t r*psi(r)\n";
 	  cout << real(Hamiltonian.eigenvalues()[i]) << endl;
 	  //cout << "writing wavefunction [u(r)] to file..." << endl;
 	    for(int j=0;j<N;j++)
@@ -125,9 +129,7 @@ int main()
 
     }
   TFile * outFile = new TFile("WF.root","RECREATE");
-  TGraph * gr = new TGraph(N,x,y);
   TGraph * gr1 = new TGraph(N,x,V);
-  gr->Write();
   gr1->Write();
   
 }
