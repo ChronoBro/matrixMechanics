@@ -1,5 +1,6 @@
 #include <iostream>
 #include <fstream>
+#include <sstream>
 #include <eigen3/Eigen/Sparse>
 #include <eigen3/Eigen/Eigenvalues>
 #include <math.h>
@@ -30,7 +31,7 @@ double potential(double l, double r)
   
 }
 
-int main()
+int main(int argc, char**argv)
 {
   //MatrixXd m(2,2);
   // m(0,0) = 3;
@@ -39,10 +40,20 @@ int main()
   // m(1,1) = m(1,0) + m(0,1);
   // std::cout << m << std::endl;
 
+  if(argc != 4)
+    {
+      cout << "example format: \n";
+      cout << "./buildWF max_r Nsteps Lmax" << endl;
+      return 0;
+    }
+  
   ofstream wf("wfs.txt");
   
   int N=500;
   double h = 0.05;
+
+  N = stoi(argv[2]);
+  h = stod(argv[1])/(double)N;
 
   wf << "N = " << N << "\n";
   
@@ -58,78 +69,90 @@ int main()
   
   //just start with L=0 case
   int L=0;
+  int Lmax = 7;
+  Lmax = stod(argv[3]);
   double x[N];
   double y[N];
   double V[N];
 
   //just for testing
-  for(int i=0;i<N;i++)
-    {
-      V[i] = potential(L,(i+1)*h);
-    }
+  // for(int i=0;i<N;i++)
+  //   {
+  //     V[i] = potential(L,(i+1)*h);
+  //   }
   //int check=1;
   //check increments if no eigenvalue < 0 is found. If no eigenvalue < 0 is found the loop should terminate
   //doesn't work
+
+  TFile * outFile = new TFile("WF.root","RECREATE");
+
   
-  for(int L=0;L<1;L++)
+  for(int L=0;L<Lmax+1;L++)
     {
       
-  //boundary condition at beginning
+      //boundary condition at beginning
 
-  if ( L % 2== 0 )
-    {
-      H(0,0) = hbar2_2m*3/pow(h,2.)+potential(L,h);
-    }
-  else
-    {
-      H(0,0) = hbar2_2m/pow(h,2.)+potential(L,h);
-    }
+      if ( L % 2== 0 )
+	{
+	  H(0,0) = hbar2_2m*3/pow(h,2.)+potential(L,h);
+	}
+      else
+	{
+	  H(0,0) = hbar2_2m/pow(h,2.)+potential(L,h);
+	}
 
-  H(0,1) = -hbar2_2m/pow(h,2.);
+      H(0,1) = -hbar2_2m/pow(h,2.);
 
-  cout << "building Hamiltonian for L = " << L << "..." << endl;
-  for(int i=1;i<(N-1);i++)
-    {
-      H(i,i-1) = -hbar2_2m/pow(h,2.);
-      H(i,i) = hbar2_2m*2/pow(h,2.) + potential(L,(i+1)*h);
-      H(i,i+1) = -hbar2_2m/pow(h,2.);
-    }
+      cout << "building Hamiltonian for L = " << L << "..." << endl;
+      for(int i=1;i<(N-1);i++)
+	{
+	  H(i,i-1) = -hbar2_2m/pow(h,2.);
+	  H(i,i) = hbar2_2m*2/pow(h,2.) + potential(L,(i+1)*h);
+	  H(i,i+1) = -hbar2_2m/pow(h,2.);
+	}
 
-  //boundary condition at end
-  H(N-1,N-1) = potential(L,N*h);
-  H(N-2,N-1) = 0.;
+      //boundary condition at end
+      H(N-1,N-1) = potential(L,N*h);
+      H(N-2,N-1) = 0.;
 
   
-  cout << "finding eigen-values(vectors)..." << endl;
+      cout << "finding eigen-values(vectors)..." << endl;
   
-  EigenSolver<MatrixXd> Hamiltonian(H);
-  MatrixXcd wavefunctions = Hamiltonian.eigenvectors();
+      EigenSolver<MatrixXd> Hamiltonian(H);
+      MatrixXcd wavefunctions = Hamiltonian.eigenvectors();
   
  
-  cout << "The bound state energies of H for L = " << L << " are:" << endl;
-  for(int i=0;i<N;i++)
-    {
-      x[i] = (i+1)*h;
-      //check++;
-      if(real(Hamiltonian.eigenvalues()[i]) < 0.) //I guess eigenvalues are type complex<double>
+      cout << "The bound state energies of H for L = " << L << " are:" << endl;
+      for(int i=0;i<N;i++)
 	{
-	  //check=1.;
-	  wf << "Quantum #s: " << "E = " << real(Hamiltonian.eigenvalues()[i]) << " L = " << L << "\n";
-	  wf << "r \t r*psi(r)\n";
-	  cout << real(Hamiltonian.eigenvalues()[i]) << endl;
-	  //cout << "writing wavefunction [u(r)] to file..." << endl;
-	    for(int j=0;j<N;j++)
-	      {
-		y[j] = real(wavefunctions(j,i));
-		wf << (j+1)*h << "\t" << y[j] << "\n";
-	      }
+	  x[i] = (i+1)*h;
+	  V[i] = potential(L,(i+1)*h);
+	  //check++;
+	  if(real(Hamiltonian.eigenvalues()[i]) < 0.) //I guess eigenvalues are type complex<double>
+	    {
+	      //check=1.;
+	      wf << "Quantum #s: " << "E = " << real(Hamiltonian.eigenvalues()[i]) << " L = " << L << "\n";
+	      wf << "r \t r*psi(r)\n";
+	      cout << real(Hamiltonian.eigenvalues()[i]) << endl;
+	      //cout << "writing wavefunction [u(r)] to file..." << endl;
+	      for(int j=0;j<N;j++)
+		{
+		  y[j] = real(wavefunctions(j,i));
+		  wf << (j+1)*h << "\t" << y[j] << "\n";
+		}
 	  
+	    }
 	}
-    }
+
+      TGraph * gr1 = new TGraph(N,x,V);
+      ostringstream name;
+      name << "Potential_L=" << L;
+      gr1->SetName(name.str().c_str());
+      gr1->Write();
+
+      delete gr1;
 
     }
-  TFile * outFile = new TFile("WF.root","RECREATE");
-  TGraph * gr1 = new TGraph(N,x,V);
-  gr1->Write();
-  
+
+  return 0;
 }
