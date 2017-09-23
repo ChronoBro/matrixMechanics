@@ -1,4 +1,4 @@
-##Yes you have to edit the Makefile... sorry in advance.##
+**********Yes you have to edit the Makefile... sorry in advance.**********
 
 Have you ever wanted to integrate a differential equation to solve Schrodinger's equation?
 
